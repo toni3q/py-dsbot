@@ -5,13 +5,11 @@ async def test_ssl():
         async with session.get("https://discord.com") as response:
             print(response.status)
 asyncio.run(test_ssl())
-
 import random
 import os
 from dotenv import load_dotenv
 load_dotenv()  # Carica le variabili d'ambiente dal file .env
 TOKEN = os.getenv("DISCORD_TOKEN")  # Recupera il token dal file .env
-
 import discord
 from discord.ext import commands
 
@@ -42,7 +40,7 @@ async def ticket(ctx):
     duplic = discord.utils.get(ctx.guild.channels, name=ticketName)
     if duplic:
         # @duplic vera nel caso in cui esiste gia' un canale con lo stesso nome.
-        await ctx.send(f"`{ctx.author}` ha già un ticket aperto.")
+        await ctx.send(f"{ctx.author} ha già un ticket aperto.")
     else:
         permissions = {
         # Nascondi il canale a @everyone.
@@ -57,7 +55,7 @@ async def ticket(ctx):
         await ctx.send(f"E' stato aperto il ticket `{ticketName}`")
         try:
             ticketContext = discord.utils.get(ctx.guild.channels, name=ticketName)
-            await ticketContext.send(f"Il tuo ticket e' stato aperto! @here\nLo Staff risponderà il prima possibile alla tua richiesta di supporto.\n\n`Se desideri chiudere il ticket, invia il comandio " + " '.close'`")
+            await ticketContext.send(f"Il tuo ticket e' stato aperto!\nLo Staff risponderà il prima possibile alla tua richiesta di supporto.\n\nSe desideri chiudere il ticket, invia il comandio " + ".close\n@here")
         except discord.errors.NotFound:
             print(f"{bot.user} non e' riuscito a trovare il canale in cui inviare il messaggio.")
 
@@ -70,7 +68,29 @@ async def close(ctx):
     # Assegno ad existing il canale che potrebbe trovare/esistere con il nome composto prima.
     existing = discord.utils.get(ctx.guild.channels, name=ticketName)
     if existing: await existing.delete(reason="Chiusura del ticket.")
-    await ctx.send(f"E' stato chiuso il `{ticketName}`")
+
+@bot.command()
+@commands.has_permissions(manage_channels=True)
+async def take(ctx):
+    user = ctx.author
+    await ctx.channel.edit(topic=f"{user}")
+    await ctx.send(f"{user} ha preso il ticket in carico.\n@here")
+
+# Per far funzionare i comandi .wl e .removewl bisogna scegliere il nome di un ruolo esistente da assegnare/rimuovere.
+# Per fare cio' basta cambiare il nome del ruolo in @role.
+@bot.command()
+@commands.has_permissions(manage_roles=True)
+async def wl(ctx, member: discord.Member):
+    role = discord.utils.get(ctx.guild.roles, name="Whitelist")
+    await member.add_roles(role)
+    await ctx.send(f"{member.mention} ha RICEVUTO la sua whitelist.")
+
+@bot.command()
+@commands.has_permissions(manage_roles=True)
+async def removewl(ctx, member: discord.Member):
+    role = discord.utils.get(ctx.guild.roles, name="Whitelist")
+    await member.remove_roles(role)
+    await ctx.send(f"{member.mention} ha PERSO la sua whitelist.")
 
 # Avvio del bot tramite TOKEN.
 bot.run(TOKEN)
